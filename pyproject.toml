@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bdh-app-inventory"
+version = "1.0.0"
+description = "Black Diamond Hub app: Black Diamond Hub app: kitchen inventory with QR codes"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "bdh-sdk>=0.3,<1",
+    "qrcode",
+]
+
+[project.urls]
+Source = "https://github.com/blackdiamondlodge/bdh-app-inventory"
+
+[project.entry-points."blackdiamondhub.plugins"]
+inventory = "inventory.plugin:spec"
+
+[tool.setuptools.packages.find]
+include = ["inventory", "inventory.*"]
+
+[tool.setuptools.package-data]
+inventory = [
+    "templates/**/*",
+    "static/**/*",
+    "migrations/*.py",
+]
