@@ -27,6 +27,45 @@ class HomepageTileTests(TestCase):
         self.assertNotContains(response, 'inventory/hub/icon.svg')
         self.assertNotContains(response, 'Kitchen Inventory')
 
+
+class AdminGateTests(TestCase):
+    def setUp(self):
+        self.item = Item.objects.create(name='Kettle', description='d', room='Kitchen')
+        self.user = User.objects.create_user(username='u', password='p')
+
+    def login(self, staff):
+        self.user.is_staff = staff
+        self.user.save()
+        self.client.force_login(self.user)
+
+    def test_signed_out_is_sent_to_login(self):
+        for url in (f'/inventory/item/{self.item.id}/edit/', '/inventory/item/add/'):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302, url)
+            self.assertIn('login', response['Location'])
+
+    def test_non_admin_is_forbidden(self):
+        self.login(staff=False)
+        self.assertEqual(self.client.get(f'/inventory/item/{self.item.id}/edit/').status_code, 403)
+        self.assertEqual(self.client.get('/inventory/item/add/').status_code, 403)
+        response = self.client.post(f'/inventory/item/{self.item.id}/update/',
+                                    data='{"room": "Garage"}', content_type='application/json')
+        self.assertEqual(response.status_code, 403)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.room, 'Kitchen')
+        self.assertNotContains(self.client.get('/inventory/'), 'add-item-button')
+
+    def test_admin_can_edit(self):
+        self.login(staff=True)
+        self.assertEqual(self.client.get(f'/inventory/item/{self.item.id}/edit/').status_code, 200)
+        self.assertEqual(self.client.get('/inventory/item/add/').status_code, 200)
+        response = self.client.post(f'/inventory/item/{self.item.id}/update/',
+                                    data='{"room": "Garage"}', content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.room, 'Garage')
+        self.assertContains(self.client.get('/inventory/'), 'add-item-button')
+
 @tag('selenium')
 class ItemModalTests(StaticLiveServerTestCase):
 

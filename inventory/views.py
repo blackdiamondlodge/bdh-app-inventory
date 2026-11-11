@@ -1,7 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from functools import wraps
+
+from bdh_sdk import is_admin
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
-from django.contrib.auth import logout
 from django.urls import reverse
 from django.db.models import Q
 from .forms import ItemForm  # Ensure you have an ItemForm in forms.py
@@ -12,6 +15,18 @@ import json
 import base64
 import qrcode
 import io
+
+
+def admin_required(view):
+    """Signed-out users go to the login page; signed-in non-admins get 403."""
+    @login_required
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not is_admin(request):
+            raise PermissionDenied
+        return view(request, *args, **kwargs)
+    return wrapper
+
 
 def index(request):
     keyword = request.GET.get('keyword', '')
@@ -28,7 +43,8 @@ def index(request):
     
     context = {
         'items': items,
-        'keyword': keyword
+        'keyword': keyword,
+        'is_admin': is_admin(request),
     }
     
     return render(request, 'inventory/inventory.html', context)
@@ -50,6 +66,7 @@ def item_detail(request, id):
     context = {
         'item': item,
         'qr_code_data': qr_code_data,  # Pass the QR code data to the template
+        'is_admin': is_admin(request),
     }
     return render(request, 'inventory/item_detail.html', context)
 
@@ -77,7 +94,7 @@ def item_detail_json(request, id):
     }
     return JsonResponse(item_data)
 
-@login_required
+@admin_required
 def edit_item(request, id):
     # Get the item object or return 404 if not found
     item = get_object_or_404(Item, pk=id)
@@ -106,8 +123,7 @@ def edit_item(request, id):
 @login_required
 @require_POST
 def update_item(request, id):
-    # Check if the user is a staff member
-    if not request.user.is_staff:
+    if not is_admin(request):
         return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
 
     # Get the item by ID or return 404 if not found
@@ -131,7 +147,8 @@ def update_item(request, id):
     except (KeyError, ValueError) as e:
         # Handle missing or invalid data
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-  
+
+@admin_required
 def add_item(request):
     if request.method == 'POST':
         form = ItemForm(request.POST, request.FILES)
@@ -141,8 +158,3 @@ def add_item(request):
     else:
         form = ItemForm()
     return render(request, 'inventory/add_item.html', {'form': form})
-  
-  
-@login_required
-def profile(request):
-    return render(request, 'inventory/profile.html')
