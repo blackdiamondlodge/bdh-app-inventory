@@ -221,9 +221,17 @@ class ItemModalTests(StaticLiveServerTestCase):
         # verify the qf code url is correct
         qr_code_element = self.browser.find_element(By.ID, 'modal-item-qrcode-img')
         self.assertTrue(qr_code_element.get_attribute('src').startswith('data:image/svg+xml;base64,'))
-        # Decode what the browser drew, logo included, enlarged so the scan doesn't depend on the 150px size.
-        self.browser.execute_script("arguments[0].style.width = '400px'", qr_code_element)
-        decoded_objects = decode(Image.open(BytesIO(qr_code_element.screenshot_as_png)))
+        # Decode what the browser draws, logo included: a 400px copy in a fixed overlay with a white
+        # quiet zone, so the scan depends on neither the 150px size nor the modal's layout.
+        overlay = self.browser.execute_script(
+            "const img = document.createElement('img'); img.src = arguments[0].src;"
+            "img.style.cssText = 'position:fixed;top:0;left:0;width:400px;padding:40px;background:#fff;z-index:2147483647';"
+            "document.body.appendChild(img); return img;",
+            qr_code_element,
+        )
+        WebDriverWait(self.browser, 10).until(lambda d: d.execute_script("return arguments[0].complete", overlay))
+        decoded_objects = decode(Image.open(BytesIO(overlay.screenshot_as_png)))
+        self.browser.execute_script("arguments[0].remove()", overlay)
         self.assertTrue(decoded_objects, "No QR code detected in the rendered image")
         self.assertEqual(decoded_objects[0].data.decode('utf-8'), f'{self.live_server_url}/inventory/item/{self.items[1].id}/')
 
