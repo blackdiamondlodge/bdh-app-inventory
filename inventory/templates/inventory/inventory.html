@@ -306,7 +306,7 @@
         }
         
         .modal-item-qrcode img {
-            max-width: 150px;
+            width: 150px;
             border: 1px solid #ddd;
             border-radius: 8px;
         }
@@ -470,7 +470,7 @@
                     const qrCodeElement = document.getElementById('modal-item-qrcode');
                     const qrCodeImgElement = document.getElementById('modal-item-qrcode-img');
                     if (data.qr_code) {
-                        qrCodeImgElement.src = `data:image/png;base64,${data.qr_code}`;
+                        qrCodeImgElement.src = `data:image/svg+xml;base64,${data.qr_code}`;
                         qrCodeElement.style.display = 'block';
                     } else {
                         qrCodeElement.style.display = 'none';

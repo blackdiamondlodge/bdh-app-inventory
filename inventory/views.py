@@ -13,8 +13,13 @@ from django.http import JsonResponse
 import json
 
 import base64
-import qrcode
-import io
+
+from bdh_sdk.qr import qr_svg
+
+
+def _qr_data(url):
+    """Base64 of a site-branded SVG QR code for url."""
+    return base64.b64encode(qr_svg(url).encode("utf-8")).decode("ascii")
 
 
 def admin_required(view):
@@ -54,14 +59,7 @@ def item_detail(request, id):
     
     # Generate QR code
     item_url = request.build_absolute_uri(reverse('item_detail', args=[id]))
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(item_url)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill='black', back_color='white')
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    qr_code_data = base64.b64encode(buffer.getvalue()).decode("utf-8")    
+    qr_code_data = _qr_data(item_url)    
     
     context = {
         'item': item,
@@ -74,14 +72,7 @@ def item_detail_json(request, id):
     item = get_object_or_404(Item, pk=id)
     
     item_url = request.build_absolute_uri(reverse('item_detail', args=[id]))
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(item_url)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill='black', back_color='white')
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    qr_code_data = base64.b64encode(buffer.getvalue()).decode("utf-8")     
+    qr_code_data = _qr_data(item_url)     
     
     item_data = {
         'id': item.id,
