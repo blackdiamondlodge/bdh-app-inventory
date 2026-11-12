@@ -76,7 +76,7 @@
         </div>
         <div class="qr-code">
             <h4>View on your Phone</h4>
-            <img src="data:image/png;base64,{{ qr_code_data }}" alt="QR Code" style="max-width: 150px; height: auto;"/> <!-- Adjust QR code size -->
+            <img src="data:image/svg+xml;base64,{{ qr_code_data }}" alt="QR Code" style="width: 150px; height: auto;"/>
         </div>
         <div class="edit-button">
           {% if is_admin %}
